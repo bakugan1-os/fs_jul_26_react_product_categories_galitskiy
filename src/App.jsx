@@ -23,14 +23,27 @@ const products = productsFromServer.map(product => {
 export const App = () => {
   const [selectedUserId, setSelectedUserId] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
 
   const normalizedQuery = normalize(searchQuery);
 
   const visibleProducts = products.filter(
     product =>
       (selectedUserId === 0 || product.user.id === selectedUserId) &&
-      normalize(product.name).includes(normalizedQuery),
+      normalize(product.name).includes(normalizedQuery) &&
+      (selectedCategoryIds.length === 0 ||
+        selectedCategoryIds.includes(product.categoryId)),
   );
+
+  const handleCategoryClick = categoryId => {
+    setSelectedCategoryIds(current => {
+      if (current.includes(categoryId)) {
+        return current.filter(id => id !== categoryId);
+      }
+
+      return [...current, categoryId];
+    });
+  };
 
   return (
     <div className="section">
@@ -97,33 +110,27 @@ export const App = () => {
               <a
                 href="#/"
                 data-cy="AllCategories"
-                className="button is-success mr-6 is-outlined"
+                className={cn('button is-success mr-6', {
+                  'is-outlined': selectedCategoryIds.length > 0,
+                })}
+                onClick={() => setSelectedCategoryIds([])}
               >
                 All
               </a>
 
-              <a
-                data-cy="Category"
-                className="button mr-2 my-1 is-info"
-                href="#/"
-              >
-                Category 1
-              </a>
-
-              <a data-cy="Category" className="button mr-2 my-1" href="#/">
-                Category 2
-              </a>
-
-              <a
-                data-cy="Category"
-                className="button mr-2 my-1 is-info"
-                href="#/"
-              >
-                Category 3
-              </a>
-              <a data-cy="Category" className="button mr-2 my-1" href="#/">
-                Category 4
-              </a>
+              {categoriesFromServer.map(category => (
+                <a
+                  key={category.id}
+                  data-cy="Category"
+                  className={cn('button mr-2 my-1', {
+                    'is-info': selectedCategoryIds === category.id,
+                  })}
+                  href="#/"
+                  onClick={() => handleCategoryClick(category.id)}
+                >
+                  {category.title}
+                </a>
+              ))}
             </div>
 
             <div className="panel-block">
@@ -131,6 +138,11 @@ export const App = () => {
                 data-cy="ResetAllButton"
                 href="#/"
                 className="button is-link is-outlined is-fullwidth"
+                onClick={() => {
+                  setSelectedUserId(0);
+                  setSearchQuery('');
+                  setSelectedCategoryIds([]);
+                }}
               >
                 Reset all filters
               </a>
@@ -139,87 +151,91 @@ export const App = () => {
         </div>
 
         <div className="box table-container">
-          <p data-cy="NoMatchingMessage">
-            No products matching selected criteria
-          </p>
+          {visibleProducts.length === 0 && (
+            <p data-cy="NoMatchingMessage">
+              No products matching selected criteria
+            </p>
+          )}
 
-          <table
-            data-cy="ProductTable"
-            className="table is-striped is-narrow is-fullwidth"
-          >
-            <thead>
-              <tr>
-                <th>
-                  <span className="is-flex is-flex-wrap-nowrap">
-                    ID
-                    <a href="#/">
-                      <span className="icon">
-                        <i data-cy="SortIcon" className="fas fa-sort" />
-                      </span>
-                    </a>
-                  </span>
-                </th>
+          {visibleProducts.length > 0 && (
+            <table
+              data-cy="ProductTable"
+              className="table is-striped is-narrow is-fullwidth"
+            >
+              <thead>
+                <tr>
+                  <th>
+                    <span className="is-flex is-flex-wrap-nowrap">
+                      ID
+                      <a href="#/">
+                        <span className="icon">
+                          <i data-cy="SortIcon" className="fas fa-sort" />
+                        </span>
+                      </a>
+                    </span>
+                  </th>
 
-                <th>
-                  <span className="is-flex is-flex-wrap-nowrap">
-                    Product
-                    <a href="#/">
-                      <span className="icon">
-                        <i data-cy="SortIcon" className="fas fa-sort-down" />
-                      </span>
-                    </a>
-                  </span>
-                </th>
+                  <th>
+                    <span className="is-flex is-flex-wrap-nowrap">
+                      Product
+                      <a href="#/">
+                        <span className="icon">
+                          <i data-cy="SortIcon" className="fas fa-sort-down" />
+                        </span>
+                      </a>
+                    </span>
+                  </th>
 
-                <th>
-                  <span className="is-flex is-flex-wrap-nowrap">
-                    Category
-                    <a href="#/">
-                      <span className="icon">
-                        <i data-cy="SortIcon" className="fas fa-sort-up" />
-                      </span>
-                    </a>
-                  </span>
-                </th>
+                  <th>
+                    <span className="is-flex is-flex-wrap-nowrap">
+                      Category
+                      <a href="#/">
+                        <span className="icon">
+                          <i data-cy="SortIcon" className="fas fa-sort-up" />
+                        </span>
+                      </a>
+                    </span>
+                  </th>
 
-                <th>
-                  <span className="is-flex is-flex-wrap-nowrap">
-                    User
-                    <a href="#/">
-                      <span className="icon">
-                        <i data-cy="SortIcon" className="fas fa-sort" />
-                      </span>
-                    </a>
-                  </span>
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {visibleProducts.map(product => (
-                <tr data-cy="Product" key={product.id}>
-                  <td className="has-text-weight-bold" data-cy="ProductId">
-                    {product.id}
-                  </td>
-
-                  <td data-cy="ProductName">{product.name}</td>
-                  <td data-cy="ProductCategory">
-                    {product.category.icon} - {product.category.title}
-                  </td>
-
-                  <td
-                    data-cy="ProductUser"
-                    className={cn({
-                      'has-text-danger': product.user.sex === 'f',
-                      'has-text-link': product.user.sex === 'm',
-                    })}
-                  >
-                    {product.user.name}
-                  </td>
+                  <th>
+                    <span className="is-flex is-flex-wrap-nowrap">
+                      User
+                      <a href="#/">
+                        <span className="icon">
+                          <i data-cy="SortIcon" className="fas fa-sort" />
+                        </span>
+                      </a>
+                    </span>
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+
+              <tbody>
+                {visibleProducts.map(product => (
+                  <tr data-cy="Product" key={product.id}>
+                    <td className="has-text-weight-bold" data-cy="ProductId">
+                      {product.id}
+                    </td>
+
+                    <td data-cy="ProductName">{product.name}</td>
+                    <td data-cy="ProductCategory">
+                      {product.category.icon} - {product.category.title}
+                    </td>
+
+                    <td
+                      data-cy="ProductUser"
+                      className={cn({
+                        'has-text-danger': product.user.sex === 'f',
+                        'has-text-link': product.user.sex === 'm',
+                      })}
+                    >
+                      {product.user.name}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>
